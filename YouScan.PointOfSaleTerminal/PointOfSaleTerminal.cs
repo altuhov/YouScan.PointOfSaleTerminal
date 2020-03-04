@@ -8,6 +8,7 @@ namespace YouScan.Sale
     {
         private readonly IList<string> _productCodes = new List<string>();
         private IReadOnlyDictionary<string, ProductPricingSettings> _pricingSettings;
+        private IReadOnlyDictionary<string, ProductPricingSettings> _pricingSettingsForDiscountProducts => GetPricingSettingsForDiscountProducts();
 
         public double CalculateTotal()
         {
@@ -25,6 +26,27 @@ namespace YouScan.Sale
 
             double result = countProductsByProductCode.Sum(arg => CalculateByProductCode(arg.ProductCode, arg.Count));
 
+            return result;
+        }
+
+        public double CalculateForDiscount()
+        {
+            if (!_pricingSettingsForDiscountProducts.Any() || !_productCodes.Any())
+            {
+                return 0;
+            }
+
+            List<string> productsForDiscount = _productCodes.Where(x => _pricingSettingsForDiscountProducts.ContainsKey(x))
+                                                  .ToList();
+
+            if (!productsForDiscount.Any())
+            {
+                return 0;
+            }
+
+            var countProductsByProductCode = productsForDiscount.GroupBy(productCode => productCode, (productCode, productCodes) => new { ProductCode = productCode, Count = productCodes.Count() });
+
+            double result = countProductsByProductCode.Sum(arg => CalculateByProductCode(arg.ProductCode, arg.Count));
             return result;
         }
 
@@ -61,6 +83,20 @@ namespace YouScan.Sale
             double result = pricingSettings.VolumePrice * packCount + pricingSettings.PerUnitPrice * perUnitCount;
 
             return result;
+        }
+
+
+        private IReadOnlyDictionary<string, ProductPricingSettings> GetPricingSettingsForDiscountProducts()
+        {
+            if (_pricingSettings == null || !_pricingSettings.Any())
+            {
+                return new Dictionary<string, ProductPricingSettings>();
+            }
+
+            var res = _pricingSettings.Where(x => x.Value.VolumeItems == 0)
+                                      .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+            return res;
         }
     }
 }

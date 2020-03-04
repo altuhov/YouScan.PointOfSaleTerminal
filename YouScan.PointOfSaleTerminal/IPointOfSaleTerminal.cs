@@ -7,5 +7,6 @@ namespace YouScan.Sale
         void SetPricing(IReadOnlyDictionary<string, ProductPricingSettings> pricingSettings);
         void Scan(string productCode);
         double CalculateTotal();
+        double CalculateForDiscount();
     }
 }

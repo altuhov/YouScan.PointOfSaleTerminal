@@ -118,5 +118,73 @@ namespace YouScan.Sale.UnitTests
             Assert.Throws<ArgumentException>(() => terminal.SetPricing(null));
             Assert.Throws<ArgumentException>(() => terminal.SetPricing(new Dictionary<string, ProductPricingSettings>()));
         }
+
+        [Theory]
+        [InlineData("ABCDABA", 9.25)]
+        [InlineData("CCCCCCC", 0)]
+        [InlineData("ABCD", 5)]
+        [InlineData("ABCDABCD", 10)]
+        [InlineData("E", 0)]
+        [InlineData("EE", 0)]
+        [InlineData("ABCDABCDFFF", 10)]
+        public void CalculateForDiscount_Should_Return_Correct_Sum(string productCodes, double totalPrice)
+        {
+            // arrange
+            IPointOfSaleTerminal terminal = new PointOfSaleTerminal();
+            IReadOnlyDictionary<string, ProductPricingSettings> settings = new Dictionary<string, ProductPricingSettings>
+            {
+                { "A", new ProductPricingSettings(1.25, 3, 3) },
+                { "B", new ProductPricingSettings(4.25) },
+                { "C", new ProductPricingSettings(1, 5, 6) },
+                { "D", new ProductPricingSettings(0.75) },
+                { "E", new ProductPricingSettings(1, 0.75, 1) }
+            };
+            terminal.SetPricing(settings);
+
+            foreach (char productCode in productCodes)
+            {
+                terminal.Scan(productCode.ToString());
+            }
+
+            // act
+            double result = terminal.CalculateForDiscount();
+
+            // assert
+            Assert.Equal(totalPrice, result);
+        }
+
+        [Fact]
+        public void CalculateForDiscount_Should_Return_0_If_No_Scan()
+        {
+            // arrange
+            IPointOfSaleTerminal terminal = new PointOfSaleTerminal();
+            IReadOnlyDictionary<string, ProductPricingSettings> settings = new Dictionary<string, ProductPricingSettings>
+            {
+                { "A", new ProductPricingSettings(1.25, 3, 3) },
+                { "B", new ProductPricingSettings(4.25) },
+                { "C", new ProductPricingSettings(1, 5, 6) },
+                { "D", new ProductPricingSettings(0.75) }
+            };
+            terminal.SetPricing(settings);
+
+            // act
+            double result = terminal.CalculateForDiscount();
+
+            // assert
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
+        public void CalculateForDiscount_Should_Return_0_If_ProductPricingSettings_Is_Null_or_Empty()
+        {
+            // arrange
+            IPointOfSaleTerminal terminal = new PointOfSaleTerminal();
+
+            // act
+            double result = terminal.CalculateForDiscount();
+
+            // assert
+            Assert.Equal(0, result);
+        }
     }
 }
